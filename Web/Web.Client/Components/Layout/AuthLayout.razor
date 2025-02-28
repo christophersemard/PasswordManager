@@ -1,0 +1,36 @@
+﻿@inherits LayoutComponentBase
+@namespace Web.Components.Layout
+
+@* Required *@
+<MudThemeProvider @rendermode="InteractiveServer" />
+<MudPopoverProvider @rendermode="InteractiveServer" />
+@* Needed for dialogs *@
+<MudDialogProvider @rendermode="InteractiveServer" />
+@* Needed for snackbars *@
+<MudSnackbarProvider @rendermode="InteractiveServer" />
+
+<div class="auth-layout">
+    <div class="auth-container">
+        @Body
+    </div>
+</div>
+
+<style>
+    .auth-layout {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #f0f2f5;
+    }
+
+    .auth-container {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 400px;
+        text-align: center;
+    }
+</style>

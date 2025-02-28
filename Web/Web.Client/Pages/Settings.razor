@@ -1,0 +1,46 @@
+﻿@page "/parametres"
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<h3>Accueil</h3>
+
+@if (_isLoading)
+{
+    <p>Chargement...</p>
+}
+else if (_user?.Identity?.IsAuthenticated == true)
+{
+    <p>Bienvenue, @_user.FindFirst(ClaimTypes.Email)?.Value</p>
+    
+    
+}
+
+@code {
+    private ClaimsPrincipal? _user;
+    private bool _isLoading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) 
+        {
+            // Récupérer l'état d'authentification
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            _user = authState.User;
+
+            // Si l'utilisateur n'est pas authentifié, redirige vers la page de login
+            if (_user?.Identity?.IsAuthenticated != true)
+            {
+                Navigation.NavigateTo("/connexion");
+            }
+            else
+            {
+                _isLoading = false;
+            }
+
+            StateHasChanged(); // Force le rendu pour mettre à jour l'UI après l'authentification
+        }
+    }
+}
