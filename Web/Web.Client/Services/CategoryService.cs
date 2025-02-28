@@ -5,7 +5,7 @@ using Core.Models;
 
 namespace Web.Client.Services
 {
-    public class CategoryService
+    public class CategoryService 
     {
         private readonly HttpClient _httpClient;
         public CategoryService(HttpClient httpClient)

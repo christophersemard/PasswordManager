@@ -18,6 +18,7 @@ builder.Services.AddBlazoredSessionStorage();
 
 // Enregistrez AuthService et le AuthenticationStateProvider personnalisé
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<PasswordService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<IClipboardService, ClipboardService>();

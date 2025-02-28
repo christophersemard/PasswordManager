@@ -10,7 +10,7 @@ using Web.Client.Services;
 
 namespace Web.Client.Services
 {
-    public class PasswordService
+    public class PasswordService 
     {
         private readonly HttpClient _httpClient;
         private readonly ILocalStorageService _localStorage;
