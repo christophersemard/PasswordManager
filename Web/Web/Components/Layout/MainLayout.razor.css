@@ -1,96 +1,152 @@
-.page {
-    position: relative;
+/* Header */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #f9f9f9;
+    border-bottom: rgba(0,0,0,0.1);
+}
+
+header .logo img {
+    max-width: 100%;
+}
+
+.menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    flex-direction: column;
+    justify-content: center;
+    width: 30px;
+    cursor: pointer;
+}
+
+.menu-toggle .bar {
+    width: 30px;
+    height: 4px;
+    background-color: #6610F2;
+}
+
+
+/* Sidebar (visible en desktop) */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 300px;
+    background-color: #f9f9f9;
+    padding-top: 20px;
+    transition: transform 0.3s ease;
+    z-index: 1000;
     display: flex;
     flex-direction: column;
+    padding-top: 20px;
 }
 
+.sidebar nav ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.sidebar nav ul li {
+    padding: 10px 20px;
+}
+
+.sidebar nav ul li a {
+    color: white;
+    text-decoration: none;
+    display: block;
+}
+
+.sidebar nav ul li a:hover {
+    background-color: #f9f9f9;
+}
+
+/* Contenu principal */
 main {
+    margin-left: 300px;
+    padding: 20px;
+    transition: margin-left 0.3s ease;
+}
+
+header{
+    display: none;
+}
+/* Contenu scrollable des liens */
+.nav-links {
     flex: 1;
+    overflow-y: auto; /* Active le défilement vertical */
 }
 
-.sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+.nav-links nav ul {
+    list-style: none;
+    padding-left: 0;
 }
 
-.top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
-    justify-content: flex-end;
-    height: 3.5rem;
-    display: flex;
-    align-items: center;
+.nav-links nav ul li {
+    padding: 6px 20px;
 }
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-        text-decoration: none;
-    }
+.nav-links nav ul li a {
+    color: white;
+    text-decoration: none;
+    display: block;
+}
 
-    .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-        text-decoration: underline;
-    }
+.nav-links nav ul li a:hover {
+    background-color: #f9f9f9;
+}
 
-    .top-row ::deep a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+/* Footer de la sidebar */
+.sidebar-footer {
+    padding: 10px 20px;
+    background-color: #f9f9f9;
+    font-size: 12px;
+    color: #6610f2;
+}
 
-@media (max-width: 640.98px) {
-    .top-row {
-        justify-content: space-between;
-    }
+.sidebar-footer .footer-links {
+    list-style: none;
+    padding-left: 0;
+}
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
+.sidebar-footer .footer-links li {
+    padding:  0;
+}
+
+.sidebar-footer .footer-links li a {
+    color: #b0bec5;
+    text-decoration: none;
+    padding-inline: 0 !important;
+}
+
+.sidebar-footer .footer-links li a:hover {
+    text-decoration: underline;
+}
+
+
+/* Mobile (Drawer) */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    main {
         margin-left: 0;
     }
+    header{
+        display: flex;
+    }
+    .logo-sidebar {
+        display: none;
+    }
+    .menu-toggle {
+        display: block;
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
 }
-
-@media (min-width: 641px) {
-    .page {
-        flex-direction: row;
-    }
-
-    .sidebar {
-        width: 250px;
-        height: 100vh;
-        position: sticky;
-        top: 0;
-    }
-
-    .top-row {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-    }
-
-    .top-row.auth ::deep a:first-child {
-        flex: 1;
-        text-align: right;
-        width: 0;
-    }
-
-    .top-row, article {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
-    }
-}
-
-#blazor-error-ui {
-    background: lightyellow;
-    bottom: 0;
-    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
-    display: none;
-    left: 0;
-    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
-    position: fixed;
-    width: 100%;
-    z-index: 1000;
-}
-
-    #blazor-error-ui .dismiss {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
-    }

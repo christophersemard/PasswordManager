@@ -1,5 +1,55 @@
-﻿<h3>LoginForm</h3>
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Web.Client.Services
+@using Web.Client.Providers
+@inject AuthenticationStateProvider AuthStateProvider
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@using System.Text.RegularExpressions
+@using System.ComponentModel.DataAnnotations
+
+
+
+<MudForm @ref="loginForm">
+    
+    <MudTextField @bind-value="Email" T="string" Label="Email" Required="true" RequiredError="L'email est requis"
+                  Validation="@(new EmailAddressAttribute() { ErrorMessage = "L'email est invalide" })" Class="mb-4"/>
+    <MudTextField @bind-value="Password" T="string" Label="Mot de passe"
+                  InputType="InputType.Password" Required="true"
+                  RequiredError="Mot de passe requis" Class="mb-8"/>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow="false" OnClick="HandleLogin" Class="">Se connecter</MudButton>
+
+    @if (error.Length > 0)
+    {
+        <MudAlert Class="mt-4" Severity="Severity.Error">Email ou mot de passe incorrect</MudAlert>
+    }
+    <MudLink Class="mt-4" Href="/inscription">Pas de compte ? Inscrivez-vous</MudLink>
+
+
+</MudForm>
 
 @code {
+    private MudForm loginForm;
     
+    private string Email { get; set; } = "";
+    private string Password { get; set; } = "";
+
+    private string error = "";
+
+
+    private async Task HandleLogin()
+    {
+            Console.WriteLine($"Tentative de connexion : {Email}");
+            error = "";
+            var result = await AuthService.LoginAsync(Email, Password);
+            if (result != null)
+            {
+                Navigation.NavigateTo("/");
+            }
+            else
+            {
+                error = "Oui";
+            }
+           
+    }
 }

@@ -1,5 +1,113 @@
-﻿<h3>RegisterForm</h3>
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Web.Client.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@using System.ComponentModel.DataAnnotations
+
+<MudForm @ref="registerForm">
+    <MudTextField @bind-value="Email" T="string" Label="Email" Required="true"
+                  RequiredError="L'email est requis"
+                  Validation="@(new EmailAddressAttribute() {ErrorMessage = "L'email est invalide"})" 
+                  Class="mb-4" />
+    
+    <MudTextField @bind-value="Password" T="string" Label="Mot de passe"
+                  InputType="InputType.Password" Required="true"
+                  RequiredError="Mot de passe requis"
+                  Validation="ValidatePassword"
+                  Class="mb-4" />
+
+    <MudTextField @bind-value="ConfirmPassword" T="string" Label="Confirmer le mot de passe"
+                  InputType="InputType.Password" Required="true"
+                  RequiredError="Confirmation requise"
+                  Validation="ValidateConfirmPassword"
+                  Class="mb-8" />
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow="false" OnClick="HandleRegister" Class="">
+        S'inscrire
+    </MudButton>
+    
+    @if (error.Length > 0)
+    {
+        <MudAlert Class="mt-4"  Severity="Severity.Error">@error</MudAlert>
+    }
+    @if (success)
+    {
+        <MudAlert Class="mt-4"  Severity="Severity.Success">Inscription réussie, 
+            <MudLink href="/connexion"  Underline="Underline.Always" Color="Color.Success">connectez-vous</MudLink>
+                     </MudAlert>
+    }
+    
+    <MudLink Class="mt-4" Href="/connexion">Déjà un compte ? Connectez-vous</MudLink>
+
+</MudForm>
 
 @code {
+    private MudForm registerForm;
     
+    private string Email { get; set; } = "";
+    private string Password { get; set; } = "";
+    private string ConfirmPassword { get; set; } = "";
+    private string error = "";
+    private bool success = false;
+
+    private string ValidatePassword(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "Le mot de passe est requis";
+        if (value.Length < 8)
+            return "Au moins 8 caractères";
+        if (!value.Any(char.IsLower))
+            return "Au moins une lettre minuscule";
+        if (!value.Any(char.IsUpper))
+            return "Au moins une lettre majuscule";
+        if (!value.Any(char.IsDigit))
+            return "Au moins un chiffre";
+        if (!value.Any(ch => !char.IsLetterOrDigit(ch)))
+            return "Au moins un symbole spécial";
+        return null;
+    }
+
+    private string ValidateConfirmPassword(string value)
+    {
+        Console.WriteLine($"Password: {Password}, ConfirmPassword: {value}");
+        if (string.IsNullOrWhiteSpace(value))
+            return "Veuillez confirmer votre mot de passe";
+        if (value != Password)
+            return "Les mots de passe ne correspondent pas";
+        
+        Console.WriteLine("Passwords match");
+        return null;
+    }
+
+    private async Task HandleRegister()
+    {
+        Console.WriteLine($"Tentative d'inscription : {Email}");
+        error = "";
+        success = false;
+        
+        // Si le formulaire n'est pas valide, on ne continue pas
+        if (!registerForm.IsValid)
+        {
+            error = "Veuillez remplir correctement le formulaire";
+            return;
+        }
+        
+
+        var result = await AuthService.RegisterAsync(Email, Password);
+        bool registered = result.Item1;
+        string message = result.Item2;
+        if (registered == true)
+        {
+            Console.WriteLine("Inscription réussie !");
+            success = true;
+            error = "";
+            await Task.Delay(1000);
+           Navigation.NavigateTo("/connexion?registered=true");
+        }
+        else
+        {
+            error = message;
+            success = false;
+        }
+    }
 }

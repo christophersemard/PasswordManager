@@ -1,29 +1,104 @@
 ﻿@inherits LayoutComponentBase
+@using Web.Client.Services; 
+@using System.Threading.Tasks;
+
+
 @* Required *@
 <MudThemeProvider @rendermode="InteractiveServer" />
 <MudPopoverProvider @rendermode="InteractiveServer" />
-
 @* Needed for dialogs *@
 <MudDialogProvider @rendermode="InteractiveServer" />
-
 @* Needed for snackbars *@
-<MudSnackbarProvider @rendermode="InteractiveServer" /> 
+<MudSnackbarProvider @rendermode="InteractiveServer" />
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
+@* Header avec logo et bouton de menu *@
+<header>
+    <div class="logo">
+        <img src="/logo-passme.png" alt="PassMe Logo" width="120px" />
+    </div>
+    <button class="menu-toggle" @onclick="ToggleSidebar">
+       <MudIcon Icon="@Icons.Material.Filled.Menu" Title="Ouvrir le menu" Style="font-size: 2rem;" Color="Color.Primary" />
+    </button>
+</header>
+
+@* Sidebar *@
+<div id="sidebar" class="sidebar @(isSidebarOpen ? "open" : "")">
+    <!-- Logo en haut -->
+    <div class="logo logo-sidebar d-flex justify-content-between align-items-center mb-4 px-8">
+        <img src="/logo-passme.png" alt="PassMe Logo" width="120px" />
+        <button class="menu-toggle" @onclick="ToggleSidebar">
+            <MudIcon Icon="@Icons.Material.Filled.Close" Title="Fermer le menu" Style="font-size: 2rem;" Color="Color.Primary" />
+            
+        </button>
     </div>
 
-    <main>
-     
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
+    <!-- Contenu scrollable des liens -->
+    <div class="nav-links">
+        <nav>
+            <ul>
+                <li>
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                        <MudIcon Icon="@Icons.Material.Filled.Key" Title="Mots de passe" Class=" me-2" Style="font-size: 1.5rem;" Color="Color.Primary" />
+                        Mots de passe
+                    </NavLink>
+                </li>
+                <li>
+                    <NavLink class="nav-link" href="/parametres" Match="NavLinkMatch.All">   <MudIcon Icon="@Icons.Material.Filled.Build" Title="Mots de passe" Class=" me-2" Style="font-size: 1.5rem;" Color="Color.Primary" />
+                        Paramètres
+                    </NavLink>
+                </li>
+                <li>
+                    <NavLink class="nav-link logout-button" href="/deconnexion" Match="NavLinkMatch.All">   <MudIcon Icon="@Icons.Material.Filled.Logout" Title="Deconnexion" Class=" me-2" Style="font-size: 1.5rem;" Color="Color.Primary" />
+                        Deconnexion
+                    </NavLink>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    
+    <!-- Footer -->
+    <div class="sidebar-footer">
+        <p class="mb-2 text-muted" style="font-size: 12px;">&copy; 2025 PassMe. Tous droits réservés.</p>
+        <nav>
+            <ul class="footer-links">
+                <li><NavLink class="nav-link px-0" href="/terms">Conditions d'utilisation</NavLink></li>
+                <li><NavLink class="nav-link px-0" href="/privacy-policy">Politique de confidentialité</NavLink></li>
+            </ul>
+        </nav>
+    </div>
 </div>
 
-<div id="blazor-error-ui">
-    An unhandled error has occurred.
-    <a href="" class="reload">Reload</a>
-    <a class="dismiss">🗙</a>
-</div>
+@* Contenu principal *@
+<main class="pa-lg-8">
+    @Body
+</main>
+
+@code {
+    private bool isSidebarOpen = false;
+    [Inject] private AuthService _authService { get; set; }
+
+    private void ToggleSidebar()
+    {
+        Console.WriteLine("Sidebar button clicked");
+        isSidebarOpen = !isSidebarOpen;
+        StateHasChanged();
+    }
+
+    private bool _isKeyRestored = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            bool restored = await _authService.RestoreEncryptionKey();
+                
+            if (!restored)
+            {
+
+                Console.WriteLine("❌ La clé AES est introuvable. Redirection vers la page de connexion.");
+                await _authService.LogoutAndRedirect();
+            }
+        }
+    }
+
+}

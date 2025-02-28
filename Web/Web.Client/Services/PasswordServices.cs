@@ -1,90 +1,187 @@
-﻿using System.Net.Http.Json;
+﻿using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Text;
 using Blazored.LocalStorage;
-using System.Security.Claims;
-using System.IdentityModel.Tokens.Jwt;
+using Core.Models;
+using Web.Client.Services;
 
 namespace Web.Client.Services
 {
-    public class AuthService
+    public class PasswordService
     {
         private readonly HttpClient _httpClient;
         private readonly ILocalStorageService _localStorage;
-        
-        public AuthService(HttpClient httpClient, ILocalStorageService localStorage)
+        private readonly AuthService _authService;
+
+        public PasswordService(HttpClient httpClient, ILocalStorageService localStorage, AuthService authService)
         {
             _httpClient = httpClient;
             _localStorage = localStorage;
-        }
-
-        public async Task<LoginResult?> LoginAsync(string email, string password)
-        {
-            var loginData = new { email, password };
-
-            var response = await _httpClient.PostAsJsonAsync("/api/auth/login", loginData);
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadFromJsonAsync<LoginResult>();
-                if (result?.Token != null)
-                {
-                    await _localStorage.SetItemAsync("authToken", result.Token);
-            
-                    return result; 
-                }
-            }
-            return null;
+            _authService = authService;
         }
         
-        public async Task<(bool, string)> RegisterAsync(string email, string password)
+        // Récupère la liste des PasswordEntry pour l'utilisateur connecté
+        public async Task<List<PasswordEntry>> GetPasswordsAsync()
         {
-            var registerData = new { email, password };
-
-            var response = await _httpClient.PostAsJsonAsync("/api/auth/register", registerData);
-            if (response.IsSuccessStatusCode)
+            var token = await _localStorage.GetItemAsync<string>("authToken");
+            if (!string.IsNullOrWhiteSpace(token))
             {
-                return (true, "");
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var result = await _httpClient.GetFromJsonAsync<List<PasswordEntry>>("api/password-entries");
+            if (result == null) return new List<PasswordEntry>();
+
+            // 🔑 Récupérer la clé AES dérivée
+            byte[] key = _authService.GetEncryptionKey();
+            Console.WriteLine($"🔹 Clé AES utilisée pour déchiffrement : {Convert.ToBase64String(key)}");
+
+            // 🔓 Déchiffrer chaque mot de passe
+            foreach (var entry in result)
+            {
+                try
+                {
+                    Console.WriteLine($"✅ Données récupérées de l’API : {entry.Title} - {entry.EncryptedPassword}");
+
+                    if (string.IsNullOrWhiteSpace(entry.EncryptedPassword))
+                    {
+                        Console.WriteLine($"❌ Erreur : EncryptedPassword est vide pour {entry.Title}");
+                        continue;
+                    }
+
+                    // Vérifier que Base64 est valide
+                    try
+                    {
+                        byte[] encryptedData = Convert.FromBase64String(entry.EncryptedPassword);
+                        Console.WriteLine($"✅ Base64 décodé avec succès pour {entry.Title}");
+
+                        // 🔓 Déchiffrement
+                        entry.DecryptedPassword = EncryptionService.Decrypt(encryptedData, key);
+
+                        Console.WriteLine($"✅ Mot de passe déchiffré pour '{entry.Title}' : {entry.DecryptedPassword}");
+                    }
+                    catch (FormatException ex)
+                    {
+                        Console.WriteLine($"❌ Erreur de décodage Base64 pour {entry.Title} : {ex.Message}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"❌ Erreur inattendue lors du déchiffrement de {entry.Title} : {ex.Message}");
+                }
+            }
+
+            return result;
+        }
+
+
+        
+        // Supprime une entrée de mot de passe
+        public async Task DeletePasswordAsync(int id)
+        {
+            var token = await _localStorage.GetItemAsync<string>("authToken");
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+            await _httpClient.DeleteAsync($"api/password-entries/{id}");
+        }
+        
+        // Crée une nouvelle entrée
+        public async Task CreatePasswordAsync(PasswordEntry entry)
+        {
+            var token = await _localStorage.GetItemAsync<string>("authToken");
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            // 🔑 Récupérer la clé AES
+            byte[] key = _authService.GetEncryptionKey();
+            if (key == null || key.Length == 0)
+            {
+                Console.WriteLine("❌ Erreur : Clé AES non disponible !");
+                return;
+            }
+            Console.WriteLine("🔹 PasswordService - Clé AES avant chiffrement : OK");
+
+            // 🔒 Chiffrer le mot de passe
+            if (!string.IsNullOrWhiteSpace(entry.DecryptedPassword))
+            {
+                entry.EncryptedPassword = EncryptionService.Encrypt(entry.DecryptedPassword, key);
+                Console.WriteLine($"✅ Mot de passe chiffré : {entry.EncryptedPassword}");
             }
             else
             {
-                // Convertir la réponse en JSON et renvoyer la clé message
-                var error = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
-                if (error.ContainsKey("message"))
-                {
-                    Console.WriteLine(error["message"]);
-                    return (false, error["message"]);
-                }
-                else
-                {
-                    return (false, "Une erreur inconnue s'est produite.");
-                }
+                Console.WriteLine("❌ Erreur : `DecryptedPassword` est vide !");
+                return;
+            }
+
+            entry.DecryptedPassword = null; // 🚨 Sécurisation - Suppression du mot de passe en clair avant l’envoi
+
+            // 📡 Envoyer à l’API
+            var response = await _httpClient.PostAsJsonAsync("api/password-entries", entry);
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("✅ Nouvelle entrée de mot de passe créée avec succès !");
+            }
+            else
+            {
+                string errorMessage = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"❌ Erreur lors de la création : {errorMessage}");
             }
         }
 
-        public async Task LogoutAsync()
+
+        
+        // Met à jour une entrée existante
+        public async Task UpdatePasswordAsync(PasswordEntry entry)
         {
-            await _localStorage.RemoveItemAsync("authToken");
-            
-            
+            var token = await _localStorage.GetItemAsync<string>("authToken");
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            // 🔑 Récupérer la clé AES
+            byte[] key = _authService.GetEncryptionKey();
+            if (key == null || key.Length == 0)
+            {
+                Console.WriteLine("❌ Erreur : Clé AES non disponible !");
+                return;
+            }
+            Console.WriteLine("🔹 PasswordService - Clé AES avant chiffrement : OK");
+
+            // 🔒 Chiffrer le mot de passe avant d’envoyer
+            if (!string.IsNullOrWhiteSpace(entry.DecryptedPassword))
+            {
+                entry.EncryptedPassword = EncryptionService.Encrypt(entry.DecryptedPassword, key);
+                Console.WriteLine($"✅ Mot de passe chiffré mis à jour : {entry.EncryptedPassword}");
+            }
+            else
+            {
+                Console.WriteLine("❌ Erreur : `DecryptedPassword` est vide !");
+                return;
+            }
+
+            entry.DecryptedPassword = null; // 🚨 Sécurisation - Suppression du mot de passe en clair
+
+            // 📡 Envoyer la mise à jour à l’API
+            var response = await _httpClient.PutAsJsonAsync($"api/password-entries/{entry.Id}", entry);
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("✅ Entrée mise à jour avec succès !");
+            }
+            else
+            {
+                string errorMessage = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"❌ Erreur lors de la mise à jour : {errorMessage}");
+            }
         }
 
 
-        public ClaimsPrincipal GetUserFromToken(string token)
-        {
-            if (string.IsNullOrEmpty(token))
-                return new ClaimsPrincipal(new ClaimsIdentity());
-
-            var handler = new JwtSecurityTokenHandler();
-            var jwtToken = handler.ReadJwtToken(token);
-
-            var identity = new ClaimsIdentity(jwtToken.Claims, "jwt");
-            return new ClaimsPrincipal(identity);
-        }
-
-    }
-    
-
-
-    public class LoginResult
-    {
-        public string Token { get; set; }
     }
 }

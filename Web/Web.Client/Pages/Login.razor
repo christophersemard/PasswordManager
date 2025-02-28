@@ -1,5 +1,41 @@
-﻿<h3>Login</h3>
+﻿@page "/connexion"
+@using Web.Client.Components.Layout
+@layout AuthLayout
+@inject NavigationManager Navigation
+@using Web.Client.Components.Auth
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
+@rendermode InteractiveServer
+
+
+<div class="bg-white">
+        <img src="/logo-passme.png" alt="PassMe Logo" width="150" class="mb-4"/>
+
+        <h1 class="title mb-4">Connexion</h1>
+        
+        @if (Navigation.Uri.Contains("registered=true"))
+        {
+
+        <MudAlert Class="" Severity="Severity.Success">Inscription réussie, connectez-vous pour accéder à votre compte</MudAlert>
+        }
+        
+        <LoginForm/>
+    </div>
 
 @code {
-    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Récupérer l'état d'authentification
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            // Si l'utilisateur n'est pas authentifié, redirige vers la page de login
+            if (user?.Identity?.IsAuthenticated == true)
+            {
+                Navigation.NavigateTo("/");
+            }
+        }
+    }
 }

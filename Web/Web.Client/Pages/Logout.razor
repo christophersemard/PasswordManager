@@ -1,6 +1,22 @@
-﻿@page "/Logout"
-<h3>Logout</h3>
+﻿@page "/deconnexion"
+@using Microsoft.AspNetCore.Components.Authorization
+@using Web.Client.Providers
+@using Web.Client.Services
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject AuthService AuthService
 
 @code {
-    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+        // Déconnexion
+        var jwtAuthStateProvider = (JwtAuthenticationStateProvider)AuthStateProvider;
+        await jwtAuthStateProvider.NotifyUserLogout();
+        
+        // Rediriger vers la page de connexion
+        Navigation.NavigateTo("/connexion");
+        }
+    }
 }
